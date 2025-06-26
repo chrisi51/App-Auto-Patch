@@ -70,9 +70,11 @@
 	<string>TRUE</string>
 	<key>WebhookFeature</key>
 	<string>FAILURES</string>
-	<key>WebhookURLSlack</key>
-	<string>https://webhook.slack.com</string>
-	<key>WebhookURLTeams</key>
+        <key>WebhookURLSlack</key>
+        <string>https://webhook.slack.com</string>
+        <key>WebhookURLRocketChat</key>
+        <string>https://webhook.rocket.chat</string>
+        <key>WebhookURLTeams</key>
 	<string>https://webhook.microsoft.com</string>
 	<key>WorkflowDisableAppDiscovery</key>
 	<string>FALSE</string>

@@ -80,7 +80,7 @@ echo "
 
     Webhook Options:
     [--webhook-feature-all] [--webhook-feature-failures] [--webhook-feature-off]
-    [--webhook-url-slack=URL] [--webhook-url-teams=URL]
+    [--webhook-url-slack=URL] [--webhook-url-rocketchat=URL] [--webhook-url-teams=URL]
 
     Troubleshooting Options:
     [--verbose-mode] [--verbose-mode-off]
@@ -128,6 +128,7 @@ echo "
     <key>UseOverlayIcon</key> <string>TRUE,FALSE</string>
     <key>WebhookFeature</key> <string>FALSE,ALL,FAILURES</string>
     <key>WebhookURLSlack</key> <string>URL</string>
+    <key>WebhookURLRocketChat</key> <string>URL</string>
     <key>WebhookURLTeams</key> <string>URL</string>
     <key>WorkflowDisableAppDiscovery</key> <true/> | <false/>
     <key>WorkflowDisableRelaunch</key> <true/> | <false/>
@@ -805,6 +806,9 @@ get_options() {
             --webhook-url-slack=*)
                 webhook_url_slack_option="${1##*=}"
             ;;
+            --webhook-url-rocketchat=*)
+                webhook_url_rocketchat_option="${1##*=}"
+            ;;
             --webhook-url-teams=*)
                 webhook_url_teams_option="${1##*=}"
             ;;
@@ -905,6 +909,8 @@ get_preferences() {
         webhook_feature_managed=$(defaults read "${appAutoPatchManagedPLIST}" WebhookFeature 2> /dev/null)
         local webhook_url_slack_managed
         webhook_url_slack_managed=$(defaults read "${appAutoPatchManagedPLIST}" WebhookURLSlack 2> /dev/null)
+        local webhook_url_rocketchat_managed
+        webhook_url_rocketchat_managed=$(defaults read "${appAutoPatchManagedPLIST}" WebhookURLRocketChat 2> /dev/null)
         local webhook_url_teams_managed
         webhook_url_teams_managed=$(defaults read "${appAutoPatchManagedPLIST}" WebhookURLTeams 2> /dev/null)
         local ignored_labels_managed
@@ -994,6 +1000,8 @@ get_preferences() {
         webhook_feature_local=$(defaults read "${appAutoPatchLocalPLIST}" WebhookFeature 2> /dev/null)
         local webhook_url_slack_local
         webhook_url_slack_local=$(defaults read "${appAutoPatchLocalPLIST}" WebhookURLSlack 2> /dev/null)
+        local webhook_url_rocketchat_local
+        webhook_url_rocketchat_local=$(defaults read "${appAutoPatchLocalPLIST}" WebhookURLRocketChat 2> /dev/null)
         local webhook_url_teams_local
         webhook_url_teams_local=$(defaults read "${appAutoPatchLocalPLIST}" WebhookURLTeams 2> /dev/null)
         local ignored_labels_local
@@ -1086,6 +1094,8 @@ get_preferences() {
     { [[ -z "${webhook_feature_managed}" ]] && [[ -z "${webhook_feature_option}" ]] && [[ -n "${webhook_feature_local}" ]]; } && webhook_feature_option="${webhook_feature_local}"
     [[ -n "${webhook_url_slack_managed}" ]] && webhook_url_slack_option="${webhook_url_slack_managed}"
     { [[ -z "${webhook_url_slack_managed}" ]] && [[ -z "${webhook_url_slack_option}" ]] && [[ -n "${webhook_url_slack_local}" ]]; } && webhook_url_slack_option="${webhook_url_slack_local}"
+    [[ -n "${webhook_url_rocketchat_managed}" ]] && webhook_url_rocketchat_option="${webhook_url_rocketchat_managed}"
+    { [[ -z "${webhook_url_rocketchat_managed}" ]] && [[ -z "${webhook_url_rocketchat_option}" ]] && [[ -n "${webhook_url_rocketchat_local}" ]]; } && webhook_url_rocketchat_option="${webhook_url_rocketchat_local}"
     [[ -n "${webhook_url_teams_managed}" ]] && webhook_url_teams_option="${webhook_url_teams_managed}"
     { [[ -z "${webhook_url_teams_managed}" ]] && [[ -z "${webhook_url_teams_option}" ]] && [[ -n "${webhook_url_teams_local}" ]]; } && webhook_url_teams_option="${webhook_url_teams_local}"
     [[ -n "${ignored_labels_managed}" ]] && ignored_labels_option="${ignored_labels_managed}"
@@ -1163,6 +1173,7 @@ get_preferences() {
     log_verbose "WorkflowDisableRelaunch: $workflow_disable_relaunch_option"
     log_verbose "WebhookFeature: $webhook_feature_option"
     log_verbose "WebhookURLSlack: $webhook_url_slack_option"
+    log_verbose "WebhookURLRocketChat: $webhook_url_rocketchat_option"
     log_verbose "WebhookURLTeams: $webhook_url_teams_option"
     log_verbose "IgnoredLabels: $ignored_labels_option"
     log_verbose "RequiredLabels: $required_labels_option"
@@ -1654,6 +1665,13 @@ manage_parameter_options() {
     else
         defaults delete "${appAutoPatchLocalPLIST}" WebhookURLSlack 2> /dev/null
     fi
+
+    # Manage ${webhook_url_rocketchat_option} and save to ${appAutoPatchLocalPLIST}.
+    if [[ -n "${webhook_url_rocketchat_option}" ]]; then
+        defaults write "${appAutoPatchLocalPLIST}" WebhookURLRocketChat -string "${webhook_url_rocketchat_option}"
+    else
+        defaults delete "${appAutoPatchLocalPLIST}" WebhookURLRocketChat 2> /dev/null
+    fi
     
     # Manage ${webhook_url_teams_option} and save to ${appAutoPatchLocalPLIST}.
     if [[ -n "${webhook_url_teams_option}" ]]; then
@@ -1664,6 +1682,7 @@ manage_parameter_options() {
     
     { [[ "${verbose_mode_option}" == "TRUE" ]] && [[ -n "${webhook_feature_option}" ]]; } && log_verbose "webhook_feature_option is: ${webhook_feature_option}"
     { [[ "${verbose_mode_option}" == "TRUE" ]] && [[ -n "${webhook_url_slack_option}" ]]; } && log_verbose "webhook_url_slack_option is: ${webhook_url_slack_option}"
+    { [[ "${verbose_mode_option}" == "TRUE" ]] && [[ -n "${webhook_url_rocketchat_option}" ]]; } && log_verbose "webhook_url_rocketchat_option is: ${webhook_url_rocketchat_option}"
     { [[ "${verbose_mode_option}" == "TRUE" ]] && [[ -n "${webhook_url_teams_option}" ]]; } && log_verbose "webhook_url_teams_option is: ${webhook_url_teams_option}"
 }
 
@@ -3777,6 +3796,96 @@ webHookMessage() {
         }'
         
         curlResult=$(curl -s -X POST -H 'Content-type: application/json' -d "$jsonPayload" "$webhook_url_slack_option")
+        log_verbose "Webhook result: $curlResult"
+    fi
+
+    if [[ $webhook_url_rocketchat_option == "" ]]; then
+        log_info "No rocketchat Webhook configured"
+    else
+        if [[ $supportTeamHyperlink == "" ]]; then
+            supportTeamHyperlink="https://www.rocket.chat"
+        else
+            supportTeamHyperlink="[${supportTeamWebsite}](https://${supportTeamWebsite})"
+        fi
+        if defaults read /Library/Preferences/com.jamfsoftware.jamf.plist jss_url &> /dev/null; then
+            jamfProURL=$(/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf.plist jss_url)
+            mdmComputerURL="${jamfProURL}/computers.html?query=${serialNumber}&queryType=COMPUTERS"
+        elif [[ "$(profiles show | grep -A4 "Management Profile" | sed -n -e 's/^.*profileIdentifier: //p')" == "Microsoft.Profiles.MDM" ]]; then
+            mdmURL="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId"
+            mdmComputerID="$(grep -rnwi '/Library/Logs/Microsoft/Intune' -e 'DeviceId:' | head -1 | grep -E -o 'DeviceId.{0,38}' | cut -d ' ' -f2)"
+            if [[ ! -z "$mdmComputerID" ]]; then
+                mdmComputerURL="${mdmURL}/${mdmComputerID}"
+            else
+                mdmComputerURL="https://intune.microsoft.com/#view/Microsoft_Intune_DeviceSettings/DevicesMacOsMenu/~/macOsDevices"
+            fi
+        elif [[  $mdmName == "Jumpcloud" ]]; then
+            mdmComputerURL="https://console.jumpcloud.com/#/devices/list"
+        else
+            log_info "No MDM determined - webhook call will fail"
+        fi
+
+        log_info "Sending RocketChat WebHook"
+        jsonPayload='{
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "'${appTitle}': '${webhookStatus}'",
+                    }
+                },
+                {
+                    "type": "divider"
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Serial Number and Computer Name:*\n>'"$serialNumber"' on '"$computerName"'"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Computer Model:*\n>'"$modelName"'"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Current User:*\n>'"$currentUserAccountName"'"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Updates:*\n>'"$formatted_result"'"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Errors:*\n>'"$formatted_error_result"'"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": ">*Computer Record:*\n>'"$mdmComputerURL"'"
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "View computer in '"$mdmName"'",
+                                "emoji": true
+                            },
+                            "style": "primary",
+                            "action_id": "actionId-0",
+                            "url": "'"$mdmComputerURL"'"
+                        }
+                    ]
+                }
+            ]
+        }'
+
+        curlResult=$(curl -s -X POST -H 'Content-type: application/json' -d "$jsonPayload" "$webhook_url_rocketchat_option")
         log_verbose "Webhook result: $curlResult"
     fi
     
