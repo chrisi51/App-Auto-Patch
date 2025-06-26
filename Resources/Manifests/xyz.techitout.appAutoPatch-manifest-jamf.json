@@ -700,6 +700,18 @@
             ],
             "property_order": 180
         },
+        "WebhookURLRocketChat": {
+            "type": "string",
+            "title": "RocketChat Webhook URL",
+            "description": "The RocketChat Webhook URL to use if WebhookFeature is set to TRUE",
+            "links": [
+                {
+                    "rel": "More information",
+                    "href": "https://github.com/App-Auto-Patch/App-Auto-Patch/wiki/Configure-Settings#webhookurlrocketchat"
+                }
+            ],
+            "property_order": 182
+        },
         "WebhookURLTeams": {
             "type": "string",
             "title": "Teams Webhook URL",

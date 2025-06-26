@@ -54,6 +54,8 @@
 <string>FALSE</string>
 <key>WebhookURLSlack</key>
 <string>longURL</string>
+<key>WebhookURLRocketChat</key>
+<string>longRocketURL</string>
 <key>WebhookURLTeams</key>
 <string>longerURL</string>
 <key>SupportTeamName</key>
