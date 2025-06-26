@@ -12,6 +12,8 @@
 <string>TRUE</string>
 <key>IgnoreAppsInHomeFolder</key>
 <string>FALSE</string>
+<key>IgnoreDNDApps</key>
+<string>coreaudiod</string>
 <key>InstallomatorOptions</key>
 <string>BLOCKING_PROCESS_ACTION=prompt_user NOTIFY=silent LOGO=microsoft</string>
 <key>InstallomatorVersion</key>

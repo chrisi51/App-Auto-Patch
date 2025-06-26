@@ -444,6 +444,24 @@
             ],
             "property_order": 115
         },
+        "IgnoreDNDApps": {
+            "type": "string",
+            "title": "Ignore DND Apps",
+            "default": "coreaudiod",
+            "description": "Comma-separated list of process names to ignore when evaluating Focus or Display Sleep Assertions",
+            "options": {
+                "inputAttributes": {
+                    "placeholder": "coreaudiod"
+                }
+            },
+            "links": [
+                {
+                    "rel": "More information",
+                    "href": "https://github.com/App-Auto-Patch/App-Auto-Patch/wiki/Configure-Settings#ignoredndapps"
+                }
+            ],
+            "property_order": 118
+        },
         "InstallomatorOptions": {
             "type": "string",
             "title": "Installomator Options",
