@@ -218,6 +218,10 @@ set_defaults() {
 
     ignoreAppsInHomeFolder="FALSE" # MDM Enabled
 
+    # Comma separated list of process names to ignore when evaluating Focus or
+    # Display Sleep Assertions. Defaults to "coreaudiod" when unset.
+    ignoreDNDApps="coreaudiod" # MDM Enabled
+
     installomatorOptions="BLOCKING_PROCESS_ACTION=prompt_user NOTIFY=silent LOGO=appstore" # MDM Enabled
     
     installomatorVersion="Main" # MDM Enabled - Use:  Release|Main 
@@ -919,6 +923,8 @@ get_preferences() {
         convert_apps_in_home_folder_managed=$(defaults read "${appAutoPatchManagedPLIST}" ConvertAppsInHomeFolder 2> /dev/null)
         local ignore_apps_in_home_folder_managed
         ignore_apps_in_home_folder_managed=$(defaults read "${appAutoPatchManagedPLIST}" IgnoreAppsInHomeFolder 2> /dev/null)
+        local ignore_dnd_apps_managed
+        ignore_dnd_apps_managed=$(defaults read "${appAutoPatchManagedPLIST}" IgnoreDNDApps 2> /dev/null)
         local installomator_options_managed
         installomator_options_managed=$(defaults read "${appAutoPatchManagedPLIST}" InstallomatorOptions 2> /dev/null)
         local installomator_update_disable_managed
@@ -1008,6 +1014,8 @@ get_preferences() {
         convert_apps_in_home_folder_local=$(defaults read "${appAutoPatchLocalPLIST}" ConvertAppsInHomeFolder 2> /dev/null)
         local ignore_apps_in_home_folder_local
         ignore_apps_in_home_folder_local=$(defaults read "${appAutoPatchLocalPLIST}" IgnoreAppsInHomeFolder 2> /dev/null)
+        local ignore_dnd_apps_local
+        ignore_dnd_apps_local=$(defaults read "${appAutoPatchLocalPLIST}" IgnoreDNDApps 2> /dev/null)
         local installomator_options_local
         installomator_options_local=$(defaults read "${appAutoPatchLocalPLIST}" InstallomatorOptions 2> /dev/null)
         local installomator_update_disable_local
@@ -1102,6 +1110,8 @@ get_preferences() {
     { [[ -z "${convert_apps_in_home_folder_managed}" ]] && [[ -n "${convertAppsInHomeFolder}" ]] && [[ -n "${convert_apps_in_home_folder_local}" ]]; } && convertAppsInHomeFolder="${convert_apps_in_home_folder_local}"
     [[ -n "${ignore_apps_in_home_folder_managed}" ]] && ignoreAppsInHomeFolder="${ignore_apps_in_home_folder_managed}"
     { [[ -z "${ignore_apps_in_home_folder_managed}" ]] && [[ -n "${ignoreAppsInHomeFolder}" ]] && [[ -n "${ignore_apps_in_home_folder_local}" ]]; } && ignoreAppsInHomeFolder="${ignore_apps_in_home_folder_local}"
+    [[ -n "${ignore_dnd_apps_managed}" ]] && ignoreDNDApps="${ignore_dnd_apps_managed}"
+    { [[ -z "${ignore_dnd_apps_managed}" ]] && [[ -n "${ignoreDNDApps}" ]] && [[ -n "${ignore_dnd_apps_local}" ]]; } && ignoreDNDApps="${ignore_dnd_apps_local}"
     [[ -n "${installomator_options_managed}" ]] && installomatorOptions="${installomator_options_managed}"
     { [[ -z "${installomator_options_managed}" ]] && [[ -n "${installomatorOptions}" ]] && [[ -n "${installomator_options_local}" ]]; } && installomatorOptions="${installomator_options_local}"
     
@@ -1170,6 +1180,7 @@ get_preferences() {
     log_verbose "AppTitle: $appTitle"
     log_verbose "ConvertAppsInHomeFolder: $convertAppsInHomeFolder"
     log_verbose "IgnoreAppsInHomeFolder: $ignoreAppsInHomeFolder"
+    log_verbose "IgnoreDNDApps: $ignoreDNDApps"
     log_verbose "InstallomatorOptions: $installomatorOptions"
     log_verbose "InstallomatorUpdateDisable: $installomator_update_disable_option"
     log_verbose "InstallomatorVersion: $installomatorVersion"
@@ -2753,8 +2764,10 @@ check_user_focus() {
 		fi
 		local previous_ifs
 		previous_ifs="${IFS}"; IFS=$'\n'
-		local display_assertions_array
-		display_assertions_array=($(pmset -g assertions | awk '/NoDisplaySleepAssertion | PreventUserIdleDisplaySleep/ && match($0,/\(.+\)/) && ! /coreaudiod/ {gsub(/^\ +/,"",$0); print};'))
+                local display_assertions_array
+                local ignore_regex
+                ignore_regex=$(echo "${ignoreDNDApps}" | tr ',' '|' )
+                display_assertions_array=($(pmset -g assertions | awk -v ignore_pattern="${ignore_regex}" '/NoDisplaySleepAssertion | PreventUserIdleDisplaySleep/ && match($0,/\(.+\)/) && $0 !~ ignore_pattern {gsub(/^\ +/,"",$0); print};'))
 		log_verbose  "display_assertions_array is:\n${display_assertions_array[*]}"
 		if [[ -n "${display_assertions_array[*]}" ]]; then
 			for display_assertion in "${display_assertions_array[@]}"; do
